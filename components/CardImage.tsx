@@ -16,8 +16,8 @@ function CardImage({ url }: ICardImage): JSX.Element {
             <DocumentDuplicateIcon className="h-5 w-5" />
           </button>
         </CopyToClipboard>
-        <div className="hidden group-hover:visible bg-purple-500 p-3 rounded-md">
-          <p className="text-xs text-gray-500">Copied!</p>
+        <div className="absolute -inset-x-3 py-1 -bottom-6 hidden rounded-md bg-purple-600 transition-all duration-300 group-hover:block">
+          <p className="text-center text-white text-xs">Copy Link</p>
         </div>
       </div>
     </div>

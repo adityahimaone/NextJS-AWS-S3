@@ -66,7 +66,7 @@ const Home: NextPage = () => {
       </Head>
       <Navbar />
       <Hero />
-      <main className="container mx-auto max-w-screen-md px-2">
+      <main className="container mx-auto max-w-screen-md px-2 overflow-hidden">
         <div className="my-3">
           <input
             type="file"
@@ -107,7 +107,11 @@ const Home: NextPage = () => {
         <div className="my-4">
           <h3 className="text-xl font-semibold mb-2 border-b-2 border-purple-500">Thumbnail</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {data && data.map((item: string) => <CardImage key={id + item} url={item} />)}
+            {data.length > 0 ? (
+              data.map((item: string) => <CardImage key={id + item} url={item} />)
+            ) : (
+              <div className="text-center text-gray-500 font-medium col-span-4">No image uploaded</div>
+            )}
           </div>
         </div>
         <Table data={data} />
