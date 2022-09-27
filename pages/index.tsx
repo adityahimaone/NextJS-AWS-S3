@@ -1,86 +1,120 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
+import { useEffect, useState, useId, useRef } from 'react';
+import type { NextPage } from 'next';
+import Head from 'next/head';
+import { CloudArrowUpIcon } from '@heroicons/react/24/solid';
+
+import { IFiles } from '@/utils/Types';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { uploadPostFile, showPostFile } from '@/store/s3Slice';
+import Navbar from '@/components/UI/Navbar';
+import CardImage from '@/components/CardImage';
+import Hero from '@/components/Hero';
+import Footer from '@/components/UI/Footer';
+import Table from '@/components/Table';
 
 const Home: NextPage = () => {
+  const id = useId();
+  const dispatch = useAppDispatch();
+  const data = useAppSelector((state) => state.s3.data);
+  const inputFileRef = useRef<HTMLInputElement>(null);
+
+  const [file, setFile] = useState<File[]>([]);
+  const [uploadingStatus, setUploadingStatus] = useState<string>('');
+  const [fileKey, setFileKey] = useState<string[]>([]);
+
+  const onChangeMultipleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      setFile(files);
+    }
+  };
+
+  const handleOpenFileInput = () => {
+    if (inputFileRef.current) {
+      inputFileRef.current.click();
+    }
+  };
+
+  useEffect(() => {
+    if (fileKey.length <= 0) return;
+    dispatch(showPostFile(fileKey));
+  }, [fileKey]);
+
+  const uploadFile = async () => {
+    setUploadingStatus('Uploading the file to AWS S3');
+
+    let files: IFiles[] = file.map((f) => {
+      return {
+        name: f.name,
+        type: f.type,
+      };
+    });
+    const result = await dispatch(uploadPostFile(files));
+    if (uploadPostFile.fulfilled.match(result)) {
+      setFileKey(file.map((f) => f.name));
+      setUploadingStatus('File uploaded successfully');
+    }
+    setFile([]);
+    setUploadingStatus('');
+  };
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-2">
+    <div className="bg-slate-100 min-h-screen">
       <Head>
-        <title>Create Next App</title>
+        <title>Home</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
-
-      <main className="flex w-full flex-1 flex-col items-center justify-center px-20 text-center">
-        <h1 className="text-6xl font-bold">
-          Welcome to{' '}
-          <a className="text-blue-600" href="https://nextjs.org">
-            Next.js!
-          </a>
-        </h1>
-
-        <p className="mt-3 text-2xl">
-          Get started by editing{' '}
-          <code className="rounded-md bg-gray-100 p-3 font-mono text-lg">
-            pages/index.tsx
-          </code>
-        </p>
-
-        <div className="mt-6 flex max-w-4xl flex-wrap items-center justify-around sm:w-full">
-          <a
-            href="https://nextjs.org/docs"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
+      <Navbar />
+      <Hero />
+      <main className="container mx-auto max-w-screen-md px-2">
+        <div className="my-3">
+          <input
+            type="file"
+            name="file"
+            accept="image/*"
+            className="hidden"
+            multiple
+            onChange={onChangeMultipleImage}
+            ref={inputFileRef}
+          />
+          <div
+            onClick={handleOpenFileInput}
+            className="w-full flex justify-center items-center rounded-md border-2 border-dashed border-purple-400 mb-3 cursor-pointer hover:border-purple-800 group"
           >
-            <h3 className="text-2xl font-bold">Documentation &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Find in-depth information about Next.js features and its API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
+            {file.length > 0 ? (
+              <div className="my-6">
+                {file.map((f) => (
+                  <div key={f.name} className="flex items-center space-x-2">
+                    <div className="text-sm text-gray-600">{f.name}</div>
+                  </div>
+                ))}
+                {uploadingStatus && <p className="my-2 text-lg font-medium text-purple-500">{uploadingStatus}</p>}
+              </div>
+            ) : (
+              <div className="my-5 flex flex-col items-center">
+                <CloudArrowUpIcon className="h-20 w-20 text-purple-500 group-hover:text-purple-800" />
+                <p>Select single or multiple images</p>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={uploadFile}
+            className=" bg-purple-500 text-white p-2 rounded-md w-full shadow-md hover:bg-purple-700 transition-all"
           >
-            <h3 className="text-2xl font-bold">Learn &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Learn about Next.js in an interactive course with quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Examples &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Discover and deploy boilerplate example Next.js projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Deploy &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+            Upload a File!
+          </button>
         </div>
+        <div className="my-4">
+          <h3 className="text-xl font-semibold mb-2 border-b-2 border-purple-500">Thumbnail</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {data && data.map((item: string) => <CardImage key={id + item} url={item} />)}
+          </div>
+        </div>
+        <Table data={data} />
       </main>
-
-      <footer className="flex h-24 w-full items-center justify-center border-t">
-        <a
-          className="flex items-center justify-center gap-2"
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-        </a>
-      </footer>
+      <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;
