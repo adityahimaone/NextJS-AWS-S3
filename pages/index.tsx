@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import type { NextPage } from "next";
 import Head from "next/head";
 import axios from "axios";
@@ -8,14 +8,17 @@ const BUCKET_URL = process.env.NEXT_PUBLIC_S3_CDN_URL
   : "";
 
 const Home: NextPage = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadingStatus, setUploadingStatus] = useState<string>("");
-  const [fileKey, setFileKey] = useState<string>("");
-  const [uploadedFile, setUploadedFile] = useState<string>("");
+  const id = useId();
 
-  const onChangeImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [file, setFile] = useState<File[]>([]);
+  const [uploadingStatus, setUploadingStatus] = useState<string>("");
+  const [fileKey, setFileKey] = useState<string[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<string[]>([]);
+
+  const onChangeMultipleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
+      const files = Array.from(e.target.files);
+      setFile(files);
     }
   };
 
@@ -23,7 +26,7 @@ const Home: NextPage = () => {
     const res = await axios.post("/api/s3/show", {
       key: fileKey,
     });
-    setUploadedFile(res.data.url);
+    setUploadedFile(res.data.result);
   };
 
   useEffect(() => {
@@ -31,33 +34,40 @@ const Home: NextPage = () => {
     showImg();
   }, [fileKey]);
 
-  console.log("uploadedFile", uploadedFile);
-
   const uploadFile = async () => {
     setUploadingStatus("Uploading the file to AWS S3");
 
+    let files = file.map((f) => {
+      return {
+        name: f.name,
+        type: f.type,
+      };
+    });
+
     let { data } = await axios.post("/api/s3/upload", {
-      name: selectedFile?.name,
-      type: selectedFile?.type,
+      files,
     });
 
     console.log(data);
-    const url = data.url;
+    const result = data.result;
+    console.log(result);
 
-    let { data: newData } = await axios.put(url, selectedFile, {
-      headers: {
-        "Content-type": selectedFile?.type ? selectedFile.type : "",
-        "Access-Control-Allow-Origin": "*",
-      },
+    let uploadPromises = result.map(async (url: string, index: number) => {
+      console.log(url, index, "url");
+      const options = {
+        headers: {
+          "Content-Type": file[index].type,
+          "Access-Control-Allow-Origin": "*",
+        },
+      };
+      const { data } = await axios.put(url, file[index], options);
+      setUploadingStatus("File uploaded successfully");
     });
 
-    console.log(newData, "data");
-    setFileKey(selectedFile?.name ? selectedFile?.name : "");
+    await Promise.all(uploadPromises);
 
-    // setUploadedFile(BUCKET_URL + selectedFile?.name);
-    console.log(uploadedFile);
-    // setUploadedFile(url);
-    setSelectedFile(null);
+    setFileKey(file.map((f) => f.name));
+    setFile([]);
   };
 
   return (
@@ -76,10 +86,19 @@ const Home: NextPage = () => {
         </h1>
         <div>
           {uploadingStatus && <p>{uploadingStatus}</p>}
-          {uploadedFile && <img src={uploadedFile} />}
+          {uploadedFile &&
+            uploadedFile.map((item: string) => (
+              <img key={id + item} src={item} alt={item} />
+            ))}
         </div>
         <div>
-          <input type="file" name="file" multiple onChange={onChangeImage} />
+          <input
+            type="file"
+            name="file"
+            accept="image/*"
+            multiple
+            onChange={onChangeMultipleImage}
+          />
           <button
             onClick={uploadFile}
             className=" bg-purple-500 text-white p-2 rounded-sm shadow-md hover:bg-purple-700 transition-all"
