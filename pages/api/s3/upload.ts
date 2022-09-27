@@ -1,20 +1,20 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import clientS3 from "@/services/clientS3";
-import { IParamsUpload } from "@/utils/Types";
+import { NextApiRequest, NextApiResponse } from 'next';
+import clientS3 from '@/services/clientS3';
+import { IParamsUpload } from '@/utils/Types';
 
 const BucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME;
 
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: "10mb",
+      sizeLimit: '10mb',
     },
   },
 };
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' });
   }
   try {
     const { files } = req.body;
@@ -29,9 +29,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     const result = await Promise.all(
-      fileParams.map((params: IParamsUpload) =>
-        clientS3.getSignedUrlPromise("putObject", params)
-      )
+      fileParams.map((params: IParamsUpload) => clientS3.getSignedUrlPromise('putObject', params)),
     );
 
     res.status(200).json({ result });

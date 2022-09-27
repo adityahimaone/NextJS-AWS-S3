@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import clientS3 from "@/services/clientS3";
-import { IParams } from "@/utils/Types";
+import { NextApiRequest, NextApiResponse } from 'next';
+import clientS3 from '@/services/clientS3';
+import { IParams } from '@/utils/Types';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   let { key } = req.body;
@@ -13,9 +13,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       return params;
     });
     const result = await Promise.all(
-      fileParams.map((params: IParams) =>
-        clientS3.getSignedUrlPromise("getObject", params)
-      )
+      fileParams.map((params: IParams) => clientS3.getSignedUrlPromise('getObject', params)),
     );
     res.status(200).json({ result });
   } catch (err) {
